@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -147,6 +148,7 @@ func NewServer(ctx context.Context, env *vtenv.Environment, name string, topoSer
 // NewTabletServer creates an instance of TabletServer. Only the first
 // instance of TabletServer will expose its state variables.
 func NewTabletServer(ctx context.Context, env *vtenv.Environment, name string, config *tabletenv.TabletConfig, topoServer *topo.Server, alias *topodatapb.TabletAlias, srvTopoCounts *stats.CountersWithSingleLabel) *TabletServer {
+	fmt.Println("[chris.lim log] NewTabletServer")
 	exporter := servenv.NewExporter(name, "Tablet")
 	tsv := &TabletServer{
 		exporter:               exporter,
@@ -173,6 +175,7 @@ func NewTabletServer(ctx context.Context, env *vtenv.Environment, name string, c
 	tsv.statelessql = NewQueryList("oltp-stateless", env.Parser())
 	tsv.statefulql = NewQueryList("oltp-stateful", env.Parser())
 	tsv.olapql = NewQueryList("olap", env.Parser())
+	fmt.Println("[chris.lim log] NewTabletServer creating new schema engine")
 	tsv.se = schema.NewEngine(tsv)
 	tsv.hs = newHealthStreamer(tsv, alias, tsv.se)
 	tsv.rt = repltracker.NewReplTracker(tsv, alias)
@@ -285,6 +288,10 @@ func (tsv *TabletServer) onlineDDLExecutorToggleTableBuffer(bufferingCtx context
 // InitDBConfig initializes the db config variables for TabletServer. You must call this function
 // to complete the creation of TabletServer.
 func (tsv *TabletServer) InitDBConfig(target *querypb.Target, dbcfgs *dbconfigs.DBConfigs, mysqld mysqlctl.MysqlDaemon) error {
+	fmt.Println("[chris.lim log] 2. TabletServer InitDBConfig", target.TabletType)
+	// print out call stack
+	debug.PrintStack()
+	fmt.Println("--------------------------------")
 	if tsv.sm.State() != StateNotConnected {
 		return vterrors.NewErrorf(vtrpcpb.Code_UNAVAILABLE, vterrors.ServerNotAvailable, "Server isn't available")
 	}
@@ -401,6 +408,10 @@ func (tsv *TabletServer) InitACL(tableACLConfigFile string, enforceTableACLConfi
 // stops internal services as deemed necessary.
 // Returns true if the state of QueryService or the tablet type changed.
 func (tsv *TabletServer) SetServingType(tabletType topodatapb.TabletType, ptsTimestamp time.Time, serving bool, reason string) error {
+	// print out the callstack
+	fmt.Println("[chris.lim log] 1. TabletServer SetServingType", tabletType, serving, reason)
+	debug.PrintStack()
+	fmt.Println("--------------------------------")
 	state := StateNotServing
 	if serving {
 		state = StateServing
@@ -411,6 +422,7 @@ func (tsv *TabletServer) SetServingType(tabletType topodatapb.TabletType, ptsTim
 // StartService is a convenience function for InitDBConfig->SetServingType
 // with serving=true.
 func (tsv *TabletServer) StartService(target *querypb.Target, dbcfgs *dbconfigs.DBConfigs, mysqld mysqlctl.MysqlDaemon) error {
+	fmt.Println("[chris.lim log] TabletServer StartService", target.TabletType)
 	if err := tsv.InitDBConfig(target, dbcfgs, mysqld); err != nil {
 		return err
 	}

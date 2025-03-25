@@ -91,6 +91,7 @@ func (ts *tableStreamer) Cancel() {
 }
 
 func (ts *tableStreamer) Stream() error {
+	fmt.Println("[chris.lim log] tableStreamer Stream")
 	// Ensure that the schema engine is Open. If vttablet came up non_serving, it may not have been initialized.
 	var err error
 	if err = ts.se.Open(); err != nil {

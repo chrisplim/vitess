@@ -118,6 +118,7 @@ func (rs *rowStreamer) Cancel() {
 }
 
 func (rs *rowStreamer) Stream() error {
+	fmt.Println("[chris.lim log] rowStreamer Stream")
 	// Ensure se is Open. If vttablet came up in a non_serving role,
 	// the schema engine may not have been initialized.
 	if err := rs.se.Open(); err != nil {

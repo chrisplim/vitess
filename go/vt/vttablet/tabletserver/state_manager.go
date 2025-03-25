@@ -213,6 +213,7 @@ func (sm *stateManager) Init(env tabletenv.Env, target *querypb.Target) {
 // If sm is already in the requested state, it returns stateChanged as
 // false.
 func (sm *stateManager) SetServingType(tabletType topodatapb.TabletType, ptsTimestamp time.Time, state servingState, reason string) error {
+	fmt.Println("[chris.lim log] StateManager SetServingType", tabletType, state)
 	defer sm.ExitLameduck()
 
 	sm.hs.Open()
@@ -223,6 +224,7 @@ func (sm *stateManager) SetServingType(tabletType topodatapb.TabletType, ptsTime
 	}
 
 	log.Infof("Starting transition to %v %v, primary term start timestamp: %v", tabletType, state, ptsTimestamp)
+	fmt.Println("[chris.lim log] StateManager Starting transition to", tabletType, state)
 	if sm.mustTransition(tabletType, ptsTimestamp, state, reason) {
 		return sm.execTransition(tabletType, state)
 	}
@@ -258,14 +260,18 @@ func (sm *stateManager) execTransition(tabletType topodatapb.TabletType, state s
 	switch state {
 	case StateServing:
 		if tabletType == topodatapb.TabletType_PRIMARY {
+			fmt.Println("[chris.lim log] StateManager execTransition servePrimary")
 			err = sm.servePrimary()
 		} else {
+			fmt.Println("[chris.lim log] StateManager execTransition serveNonPrimary", tabletType)
 			err = sm.serveNonPrimary(tabletType)
 		}
 	case StateNotServing:
 		if tabletType == topodatapb.TabletType_PRIMARY {
+			fmt.Println("[chris.lim log] StateManager execTransition unservePrimary")
 			err = sm.unservePrimary()
 		} else {
+			fmt.Println("[chris.lim log] StateManager execTransition unserveNonPrimary", tabletType)
 			err = sm.unserveNonPrimary(tabletType)
 		}
 	case StateNotConnected:
@@ -300,6 +306,7 @@ func (sm *stateManager) retryTransition(message string) {
 }
 
 func (sm *stateManager) recheckState() bool {
+	fmt.Println("[chris.lim log] StateManager recheckState")
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
@@ -375,6 +382,7 @@ func (sm *stateManager) StopService() {
 	defer close(sm.setTimeBomb())
 
 	log.Info("Stopping TabletServer")
+	fmt.Println("[chris.lim log] StateManager StopService")
 	sm.SetServingType(sm.Target().TabletType, time.Time{}, StateNotConnected, "service stopped")
 	sm.hcticks.Stop()
 	sm.hs.Close()
@@ -445,6 +453,7 @@ func (sm *stateManager) verifyTargetLocked(ctx context.Context, target *querypb.
 }
 
 func (sm *stateManager) servePrimary() error {
+	fmt.Println("[chris.lim log] StateManager servePrimary")
 	sm.watcher.Close()
 
 	if err := sm.connect(topodatapb.TabletType_PRIMARY); err != nil {
@@ -488,6 +497,7 @@ func (sm *stateManager) unservePrimary() error {
 }
 
 func (sm *stateManager) serveNonPrimary(wantTabletType topodatapb.TabletType) error {
+	fmt.Println("[chris.lim log] StateManager serveNonPrimary", wantTabletType)
 	// We are likely transitioning from primary. We have to honor
 	// the shutdown grace period.
 	cancel := sm.terminateAllQueries(nil)
@@ -529,6 +539,7 @@ func (sm *stateManager) unserveNonPrimary(wantTabletType topodatapb.TabletType) 
 }
 
 func (sm *stateManager) connect(tabletType topodatapb.TabletType) error {
+	fmt.Println("[chris.lim log] StateManager connect", tabletType)
 	if err := sm.se.EnsureConnectionAndDB(tabletType); err != nil {
 		return err
 	}

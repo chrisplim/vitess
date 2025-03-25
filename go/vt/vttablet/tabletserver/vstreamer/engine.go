@@ -158,6 +158,7 @@ func (vse *Engine) GetTabletInfo() string {
 
 // InitDBConfig initializes the target parameters for the Engine.
 func (vse *Engine) InitDBConfig(keyspace, shard string) {
+	fmt.Println("[chris.lim log] vstreamer engine InitDBConfig", keyspace, shard)
 	vse.keyspace = keyspace
 	vse.shard = shard
 }
@@ -237,6 +238,8 @@ func (vse *Engine) validateBinlogRowImage(ctx context.Context, db dbconfigs.Conn
 func (vse *Engine) Stream(ctx context.Context, startPos string, tablePKs []*binlogdatapb.TableLastPK,
 	filter *binlogdatapb.Filter, throttlerApp throttlerapp.Name,
 	send func([]*binlogdatapb.VEvent) error, options *binlogdatapb.VStreamOptions) error {
+
+	fmt.Println("[chris.lim log] vstreamer engine Stream")
 
 	if err := vse.validateBinlogRowImage(ctx, vse.se.GetDBConnector()); err != nil {
 		return err

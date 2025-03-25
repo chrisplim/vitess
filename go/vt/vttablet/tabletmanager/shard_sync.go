@@ -18,6 +18,7 @@ package tabletmanager
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -220,6 +221,7 @@ func syncShardPrimary(ctx context.Context, ts *topo.Server, tablet *topodatapb.T
 // We just directly update our tablet type to REPLICA.
 func (tm *TabletManager) endPrimaryTerm(ctx context.Context, primaryAlias *topodatapb.TabletAlias) error {
 	primaryAliasStr := topoproto.TabletAliasString(primaryAlias)
+	fmt.Println("[chris.lim log] endPrimaryTerm", primaryAliasStr, tm.baseTabletType)
 	log.Warningf("Another tablet (%v) has won primary election. Stepping down to %v.", primaryAliasStr, tm.baseTabletType)
 
 	if mysqlctl.DisableActiveReparents {

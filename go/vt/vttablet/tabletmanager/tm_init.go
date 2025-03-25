@@ -357,6 +357,7 @@ func setTabletTagsStats(tablet *topodatapb.Tablet) {
 
 // Start starts the TabletManager.
 func (tm *TabletManager) Start(tablet *topodatapb.Tablet, config *tabletenv.TabletConfig) error {
+	fmt.Println("[chris.lim log] TabletManager Start")
 	defer func() {
 		log.Infof("TabletManager Start took ~%d ms", time.Since(servenv.GetInitStartTime()).Milliseconds())
 	}()
@@ -385,6 +386,8 @@ func (tm *TabletManager) Start(tablet *topodatapb.Tablet, config *tabletenv.Tabl
 		return err
 	}
 
+	fmt.Println("[chris.lim log] QueryServiceControl InitDBConfig")
+	fmt.Println("[chris.lim log] tm.se is: ", tm.QueryServiceControl)
 	err = tm.QueryServiceControl.InitDBConfig(&querypb.Target{
 		Keyspace:   tablet.Keyspace,
 		Shard:      tablet.Shard,
@@ -396,17 +399,20 @@ func (tm *TabletManager) Start(tablet *topodatapb.Tablet, config *tabletenv.Tabl
 	tm.QueryServiceControl.RegisterQueryRuleSource(denyListQueryList)
 
 	if tm.UpdateStream != nil {
+		fmt.Println("[chris.lim log] UpdateStream InitDBConfig")
 		tm.UpdateStream.InitDBConfig(tm.DBConfigs)
 		servenv.OnRun(tm.UpdateStream.RegisterService)
 		servenv.OnTerm(tm.UpdateStream.Disable)
 	}
 
 	if tm.VREngine != nil {
+		fmt.Println("[chris.lim log] VREngine InitDBConfig")
 		tm.VREngine.InitDBConfig(tm.DBConfigs)
 		servenv.OnTerm(tm.VREngine.Close)
 	}
 
 	if tm.VDiffEngine != nil {
+		fmt.Println("[chris.lim log] VDiffEngine InitDBConfig")
 		tm.VDiffEngine.InitDBConfig(tm.DBConfigs)
 		servenv.OnTerm(tm.VDiffEngine.Close)
 	}
@@ -789,6 +795,7 @@ func (tm *TabletManager) redoPreparedTransactionsAndSetReadWrite(ctx context.Con
 }
 
 func (tm *TabletManager) initTablet(ctx context.Context) error {
+	fmt.Println("[chris.lim log] initTablet")
 	tablet := tm.Tablet()
 	err := tm.TopoServer.CreateTablet(ctx, tablet)
 	switch {

@@ -105,6 +105,7 @@ func NewTestEngine(ts *topo.Server, tablet *topodata.Tablet, dbn string, dbcf fu
 }
 
 func (vde *Engine) InitDBConfig(dbcfgs *dbconfigs.DBConfigs) {
+	fmt.Println("[chris.lim log] vdiff engine InitDBConfig")
 	// If it's a test engine and we're already initialized then do nothing.
 	if vde.fortests && vde.dbClientFactoryFiltered != nil && vde.dbClientFactoryDba != nil {
 		return

@@ -159,6 +159,7 @@ func NewTableGC(env tabletenv.Env, ts *topo.Server, lagThrottler *throttle.Throt
 // InitDBConfig initializes keyspace and shard
 func (collector *TableGC) InitDBConfig(keyspace, shard, dbName string) {
 	log.Info("TableGC: init")
+	fmt.Println("[chris.lim log] TableGC: init")
 	collector.keyspace = keyspace
 	collector.shard = shard
 	collector.dbName = dbName

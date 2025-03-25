@@ -18,6 +18,7 @@ package repltracker
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -39,6 +40,7 @@ type poller struct {
 }
 
 func (p *poller) InitDBConfig(mysqld mysqlctl.MysqlDaemon) {
+	fmt.Println("[chris.lim log] repltracker poller InitDBConfig")
 	p.mysqld = mysqld
 }
 

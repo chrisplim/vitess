@@ -104,6 +104,7 @@ type Engine struct {
 // NewEngine creates a new Engine.
 func NewEngine(env tabletenv.Env) *Engine {
 	reloadTime := env.Config().SchemaReloadInterval
+	fmt.Println("[chris.lim log] engine NewEngine env.Config().SkipSchemaEngineMetaCheck", env.Config().SkipSchemaEngineMetaCheck)
 	se := &Engine{
 		env: env,
 		// We need three connections: one for the reloader, one for
@@ -114,6 +115,7 @@ func NewEngine(env tabletenv.Env) *Engine {
 		}),
 		ticks:           timer.NewTimer(reloadTime),
 		throttledLogger: logutil.NewThrottledLogger("schema-tracker", 1*time.Minute),
+		SkipMetaCheck:   env.Config().SkipSchemaEngineMetaCheck,
 	}
 	se.schemaCopy = env.Config().SignalWhenSchemaChange
 	_ = env.Exporter().NewGaugeDurationFunc("SchemaReloadTime", "vttablet keeps table schemas in its own memory and periodically refreshes it from MySQL. This config controls the reload time.", se.ticks.Interval)
@@ -126,6 +128,7 @@ func NewEngine(env tabletenv.Env) *Engine {
 	env.Exporter().HandleFunc("/schemaz", func(w http.ResponseWriter, r *http.Request) {
 		// Ensure schema engine is Open. If vttablet came up in a non_serving role,
 		// the schema engine may not have been initialized.
+		fmt.Println("[chris.lim log] schemazHandler")
 		err := se.Open()
 		if err != nil {
 			w.Write([]byte(err.Error()))
@@ -151,6 +154,7 @@ func (se *Engine) InitDBConfig(cp dbconfigs.Connector) {
 // in a future version (>v16) once the new schema init functionality
 // is stable.
 func (se *Engine) syncSidecarDB(ctx context.Context, conn *dbconnpool.DBConnection) error {
+	fmt.Println("[chris.lim log] syncSidecarDB")
 	log.Infof("In syncSidecarDB")
 	defer func(start time.Time) {
 		log.Infof("syncSidecarDB took %d ms", time.Since(start).Milliseconds())
@@ -241,6 +245,7 @@ func (se *Engine) Open() error {
 		return nil
 	}
 	log.Info("Schema Engine: opening")
+	fmt.Println("[chris.lim log] Schema Engine: opening")
 
 	ctx := tabletenv.LocalContext()
 
@@ -398,6 +403,7 @@ func (se *Engine) ReloadAtEx(ctx context.Context, pos replication.Position, incl
 // reload reloads the schema. It can also be used to initialize it.
 func (se *Engine) reload(ctx context.Context, includeStats bool) error {
 	start := time.Now()
+	fmt.Println("[chris.lim log] [schema engine] reloading schema starttime: ", start, " skipMetaCheck: ", se.SkipMetaCheck)
 	defer func() {
 		se.env.LogError()
 		se.SchemaReloadTimings.Record("SchemaReload", start)
@@ -412,6 +418,7 @@ func (se *Engine) reload(ctx context.Context, includeStats bool) error {
 	ctx, cancel := context.WithTimeout(ctx, se.reloadTimeout)
 	defer cancel()
 
+	fmt.Println("[chris.lim log] [schema engine] getting connection")
 	conn, err := se.conns.Get(ctx, nil)
 	if err != nil {
 		return err
@@ -419,12 +426,16 @@ func (se *Engine) reload(ctx context.Context, includeStats bool) error {
 	defer conn.Recycle()
 
 	// curTime will be saved into lastChange after schema is loaded.
+	fmt.Println("[chris.lim log] [schema engine] getting mysql time")
 	curTime, err := se.mysqlTime(ctx, conn.Conn)
+	fmt.Println("[chris.lim log] [schema engine] mysql time: ", curTime)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("[chris.lim log] [schema engine] getting table data")
 	tableData, err := getTableData(ctx, conn.Conn, includeStats)
+	fmt.Println("[chris.lim log] [schema engine] table data: ", tableData)
 	if err != nil {
 		return vterrors.Wrapf(err, "in Engine.reload(), reading tables")
 	}
@@ -433,24 +444,32 @@ func (se *Engine) reload(ctx context.Context, includeStats bool) error {
 
 	// changedViews are the views that have changed. We can't use the same createTime logic for views because, MySQL
 	// doesn't update the create_time field for views when they are altered. This is annoying, but something we have to work around.
+	fmt.Println("[chris.lim log] [schema engine] getting changed view names")
 	changedViews, err := getChangedViewNames(ctx, conn.Conn, shouldUseDatabase)
+	fmt.Println("[chris.lim log] [schema engine] changed view names: ", changedViews)
 	if err != nil {
 		return err
 	}
 	// mismatchTables stores the tables whose createTime in our cache doesn't match the createTime stored in the database.
 	// This can happen if a primary crashed right after a DML succeeded, before it could reload its state. If all the replicas
 	// are able to reload their cache before one of them is promoted, then the database information would be out of sync.
+	fmt.Println("[chris.lim log] [schema engine] getting mismatched table names")
 	mismatchTables, err := se.getMismatchedTableNames(ctx, conn.Conn, shouldUseDatabase)
+	fmt.Println("[chris.lim log] [schema engine] mismatched table names: ", mismatchTables)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("[chris.lim log] [schema engine] updating innodb rows read")
 	err = se.updateInnoDBRowsRead(ctx, conn.Conn)
+	fmt.Println("[chris.lim log] [schema engine] innodb rows read: ", err)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("[chris.lim log] [schema engine] getting changed user defined functions")
 	udfsChanged, err := getChangedUserDefinedFunctions(ctx, conn.Conn, shouldUseDatabase)
+	fmt.Println("[chris.lim log] [schema engine] changed user defined functions: ", udfsChanged)
 	if err != nil {
 		se.throttledLogger.Errorf("error in getting changed UDFs: %v", err)
 	}
@@ -462,8 +481,10 @@ func (se *Engine) reload(ctx context.Context, includeStats bool) error {
 	changedTables := make(map[string]*Table)
 	// created and altered contain the names of created and altered tables for broadcast.
 	var created, altered []*Table
-	for _, row := range tableData.Rows {
+	fmt.Println("[chris.lim log] [schema engine] iterating through tables, length of tableData.Rows: ", len(tableData.Rows), "time: ", time.Now().Format(time.RFC3339))
+	for i, row := range tableData.Rows {
 		tableName := row[0].ToString()
+		fmt.Println("[chris.lim log] [schema engine] table name: ", tableName, " index: ", i, " time: ", time.Now().Format(time.RFC3339))
 		curTables[tableName] = true
 		createTime, _ := row[2].ToCastInt64()
 		var fileSize, allocatedSize uint64
@@ -497,6 +518,7 @@ func (se *Engine) reload(ctx context.Context, includeStats bool) error {
 		tbl, isInTablesMap := se.tables[tableName]
 		_, isInChangedViewMap := changedViews[tableName]
 		_, isInMismatchTableMap := mismatchTables[tableName]
+		fmt.Println("[chris.lim log] [schema engine] table name: ", tableName, " isInTablesMap: ", isInTablesMap, " createTime: ", createTime, " tbl.CreateTime: ", tbl.CreateTime, " se.lastChange.Load(): ", se.lastChange.Load(), " isInChangedViewMap: ", isInChangedViewMap, " isInMismatchTableMap: ", isInMismatchTableMap)
 		if isInTablesMap && createTime == tbl.CreateTime && createTime < se.lastChange.Load() && !isInChangedViewMap && !isInMismatchTableMap {
 			if includeStats {
 				tbl.FileSize = fileSize
@@ -506,7 +528,9 @@ func (se *Engine) reload(ctx context.Context, includeStats bool) error {
 		}
 
 		log.V(2).Infof("Reading schema for table: %s", tableName)
+		fmt.Println("[chris.lim log] [schema engine] reading schema for table: ", tableName)
 		tableType := row[1].String()
+		fmt.Println("[chris.lim log] [schema engine] table type: ", tableType)
 		table, err := LoadTable(conn, se.cp.DBName(), tableName, tableType, row[3].ToString(), se.env.Environment().CollationEnv())
 		if err != nil {
 			if isView := strings.Contains(tableType, tmutils.TableView); isView {
@@ -529,6 +553,7 @@ func (se *Engine) reload(ctx context.Context, includeStats bool) error {
 			created = append(created, table)
 		}
 	}
+	fmt.Println("[chris.lim log] [schema engine] done iterating through tables, created: ", created, " altered: ", altered)
 	if rec.HasErrors() {
 		return rec.Error()
 	}
@@ -557,6 +582,7 @@ func (se *Engine) reload(ctx context.Context, includeStats bool) error {
 	se.lastChange.Store(curTime)
 	if len(created) > 0 || len(altered) > 0 || len(dropped) > 0 {
 		log.Infof("schema engine created %v, altered %v, dropped %v", extractNamesFromTablesList(created), extractNamesFromTablesList(altered), extractNamesFromTablesList(dropped))
+		fmt.Println("[chris.lim log] [schema engine] created: ", extractNamesFromTablesList(created), " altered: ", extractNamesFromTablesList(altered), " dropped: ", extractNamesFromTablesList(dropped))
 	}
 	se.broadcast(created, altered, dropped, udfsChanged)
 	return nil
@@ -867,6 +893,7 @@ func (se *Engine) handleDebugSchema(response http.ResponseWriter, request *http.
 }
 
 func (se *Engine) handleHTTPSchema(response http.ResponseWriter) {
+	fmt.Println("[chris.lim log] handleHTTPSchema")
 	// Ensure schema engine is Open. If vttablet came up in a non_serving role,
 	// the schema engine may not have been initialized.
 	err := se.Open()

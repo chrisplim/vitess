@@ -172,6 +172,7 @@ func NewStreamer(cp dbconfigs.Connector, se *schema.Engine, clientCharset *binlo
 
 // Stream starts streaming binlog events using the settings from NewStreamer().
 func (bls *Streamer) Stream(ctx context.Context) (err error) {
+	fmt.Println("[chris.lim log] Binlog Streamer Stream")
 	// Ensure se is Open. If vttablet came up in a non_serving role,
 	// the schema engine may not have been initialized.
 	if err := bls.se.Open(); err != nil {

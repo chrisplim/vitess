@@ -251,6 +251,7 @@ func (updateStream *UpdateStreamImpl) StreamKeyRange(ctx context.Context, positi
 
 // StreamTables is part of the UpdateStream interface
 func (updateStream *UpdateStreamImpl) StreamTables(ctx context.Context, position string, tables []string, charset *binlogdatapb.Charset, callback func(trans *binlogdatapb.BinlogTransaction) error) (err error) {
+	fmt.Println("[chris.lim log] StreamTables")
 	pos, err := replication.DecodePosition(position)
 	if err != nil {
 		return err

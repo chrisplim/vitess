@@ -83,6 +83,7 @@ var (
 
 func init() {
 	currentConfig = *NewDefaultConfig()
+	fmt.Println("[chris.lim log] tabletenv init config. CurrentConfig skipSchemaEngineMetaCheck", currentConfig.SkipSchemaEngineMetaCheck)
 	currentConfig.DB = &dbconfigs.GlobalDBConfigs
 	servenv.OnParseFor("vtcombo", registerTabletEnvFlags)
 	servenv.OnParseFor("vttablet", registerTabletEnvFlags)
@@ -210,6 +211,8 @@ func registerTabletEnvFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&currentConfig.EnablePerWorkloadTableMetrics, "enable-per-workload-table-metrics", defaultConfig.EnablePerWorkloadTableMetrics, "If true, query counts and query error metrics include a label that identifies the workload")
 
 	fs.BoolVar(&currentConfig.Unmanaged, "unmanaged", false, "Indicates an unmanaged tablet, i.e. using an external mysql-compatible database")
+
+	fs.BoolVar(&currentConfig.SkipSchemaEngineMetaCheck, "skip-schema-engine-meta-check", false, "Skip schema engine meta check.")
 }
 
 var (
@@ -358,6 +361,8 @@ type TabletConfig struct {
 	EnableViews bool `json:"-"`
 
 	EnablePerWorkloadTableMetrics bool `json:"-"`
+
+	SkipSchemaEngineMetaCheck bool `json:"skipSchemaEngineMetaCheck,omitempty"`
 }
 
 func (cfg *TabletConfig) MarshalJSON() ([]byte, error) {
@@ -1054,6 +1059,8 @@ var defaultConfig = TabletConfig{
 	},
 
 	EnablePerWorkloadTableMetrics: false,
+
+	SkipSchemaEngineMetaCheck: false,
 }
 
 // defaultTxThrottlerConfig returns the default TxThrottlerConfigFlag object based on

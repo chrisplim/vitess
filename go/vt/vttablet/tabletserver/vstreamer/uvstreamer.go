@@ -140,6 +140,7 @@ func newUVStreamer(ctx context.Context, vse *Engine, cp dbconfigs.Connector, se 
 //	the first time, with just the filter and an empty pos
 //	during a restart, with both the filter and list of TableLastPK from the vgtid
 func (uvs *uvstreamer) buildTablePlan() error {
+	fmt.Println("[chris.lim log] uvstreamer buildTablePlan")
 	uvs.plans = make(map[string]*tablePlan)
 	tableLastPKs := make(map[string]*binlogdatapb.TableLastPK)
 	for _, tablePK := range uvs.inTablePKs {

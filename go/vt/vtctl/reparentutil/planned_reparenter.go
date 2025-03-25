@@ -225,6 +225,7 @@ func (pr *PlannedReparenter) performGracefulPromotion(
 	primaryElect *topodatapb.Tablet,
 	opts PlannedReparentOptions,
 ) error {
+	fmt.Println("[chris.lim log] performGracefulPromotion")
 	primaryElectAliasStr := topoproto.TabletAliasString(primaryElect.Alias)
 	ev.OldPrimary = currentPrimary.Tablet.CloneVT()
 

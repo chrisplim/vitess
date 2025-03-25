@@ -148,6 +148,7 @@ func NewEngine(env *vtenv.Environment, config *tabletenv.TabletConfig, ts *topo.
 
 // InitDBConfig should be invoked after the db name is computed.
 func (vre *Engine) InitDBConfig(dbcfgs *dbconfigs.DBConfigs) {
+	fmt.Println("[chris.lim log] VReplication Engine InitDBConfig")
 	// If we're already initialized, it's a test engine. Ignore the call.
 	if vre.dbClientFactoryFiltered != nil && vre.dbClientFactoryDba != nil {
 		return

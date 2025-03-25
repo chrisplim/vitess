@@ -17,6 +17,8 @@ limitations under the License.
 package vreplication
 
 import (
+	"fmt"
+
 	"vitess.io/vitess/go/mysql"
 	"vitess.io/vitess/go/vt/dbconfigs"
 	"vitess.io/vitess/go/vt/vtenv"
@@ -37,6 +39,7 @@ import (
 // to fetch the corresponding GTID for required recovery time
 func NewReplicaConnector(venv *vtenv.Environment, connParams *mysql.ConnParams) *ReplicaConnector {
 	// Construct
+	fmt.Println("[chris.lim log] NewReplicaConnector")
 	config := tabletenv.NewDefaultConfig()
 	dbCfg := &dbconfigs.DBConfigs{
 		Host: connParams.Host,

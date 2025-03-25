@@ -40,22 +40,22 @@ fi
 # start vtctld
 CELL=zone1 ../common/scripts/vtctld-up.sh
 
-if vtctldclient GetKeyspace commerce > /dev/null 2>&1 ; then
-	# Keyspace already exists: we could be running this 101 example on an non-empty VTDATAROOT
-	vtctldclient SetKeyspaceDurabilityPolicy --durability-policy=semi_sync commerce || fail "Failed to set keyspace durability policy on the commerce keyspace"
-else
-	# Create the keyspace with the sidecar database name and set the
-	# correct durability policy. Please see the comment above for
-	# more context on using a custom sidecar database name in your
-	# Vitess clusters.
-	vtctldclient CreateKeyspace --sidecar-db-name="${SIDECAR_DB_NAME}" --durability-policy=semi_sync commerce || fail "Failed to create and configure the commerce keyspace"
-fi
+#if vtctldclient GetKeyspace commerce > /dev/null 2>&1 ; then
+#	# Keyspace already exists: we could be running this 101 example on an non-empty VTDATAROOT
+#	vtctldclient SetKeyspaceDurabilityPolicy --durability-policy=semi_sync commerce || fail "Failed to set keyspace durability policy on the commerce keyspace"
+#else
+#	# Create the keyspace with the sidecar database name and set the
+#	# correct durability policy. Please see the comment above for
+#	# more context on using a custom sidecar database name in your
+#	# Vitess clusters.
+#	vtctldclient CreateKeyspace --sidecar-db-name="${SIDECAR_DB_NAME}" --durability-policy=semi_sync commerce || fail "Failed to create and configure the commerce keyspace"
+#fi
 
-# start mysqlctls for keyspace commerce
-# because MySQL takes time to start, we do this in parallel
-for i in 100 101 102; do
-	CELL=zone1 TABLET_UID=$i ../common/scripts/mysqlctl-up.sh &
-done
+## start mysqlctls for keyspace commerce
+## because MySQL takes time to start, we do this in parallel
+#for i in 100 101 102; do
+#	CELL=zone1 TABLET_UID=$i ../common/scripts/mysqlctl-up.sh &
+#done
 
 # without a sleep, we can have below echo happen before the echo of mysqlctl-up.sh
 sleep 2
@@ -63,31 +63,31 @@ echo "Waiting for mysqlctls to start..."
 wait
 echo "mysqlctls are running!"
 
-# start vttablets for keyspace commerce
-for i in 100 101 102; do
-	CELL=zone1 KEYSPACE=commerce TABLET_UID=$i ../common/scripts/vttablet-up.sh
-done
+## start vttablets for keyspace commerce
+#for i in 100 101 102; do
+#	CELL=zone1 KEYSPACE=commerce TABLET_UID=$i ../common/scripts/vttablet-up.sh
+#done
+#
+## start vtorc
+#../common/scripts/vtorc-up.sh
 
-# start vtorc
-../common/scripts/vtorc-up.sh
-
-# Wait for all the tablets to be up and registered in the topology server
-# and for a primary tablet to be elected in the shard and become healthy/serving.
-wait_for_healthy_shard commerce 0 || exit 1
-
-# create the schema
-vtctldclient ApplySchema --sql-file create_commerce_schema.sql commerce || fail "Failed to apply schema for the commerce keyspace"
-
-# create the vschema
-vtctldclient ApplyVSchema --vschema-file vschema_commerce_initial.json commerce || fail "Failed to apply vschema for the commerce keyspace"
+## Wait for all the tablets to be up and registered in the topology server
+## and for a primary tablet to be elected in the shard and become healthy/serving.
+#wait_for_healthy_shard commerce 0 || exit 1
+#
+## create the schema
+#vtctldclient ApplySchema --sql-file create_commerce_schema.sql commerce || fail "Failed to apply schema for the commerce keyspace"
+#
+## create the vschema
+#vtctldclient ApplyVSchema --vschema-file vschema_commerce_initial.json commerce || fail "Failed to apply vschema for the commerce keyspace"
 
 # start vtgate
 CELL=zone1 ../common/scripts/vtgate-up.sh
 
-# start vtadmin
-if [[ -n ${SKIP_VTADMIN} ]]; then
-	echo -e "\nSkipping VTAdmin! If this is not what you want then please unset the SKIP_VTADMIN env variable in your shell."
-else
-	../common/scripts/vtadmin-up.sh
-fi
+## start vtadmin
+#if [[ -n ${SKIP_VTADMIN} ]]; then
+#	echo -e "\nSkipping VTAdmin! If this is not what you want then please unset the SKIP_VTADMIN env variable in your shell."
+#else
+#	../common/scripts/vtadmin-up.sh
+#fi
 

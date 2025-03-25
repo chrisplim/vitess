@@ -191,6 +191,7 @@ func (vs *vstreamer) Stream() error {
 
 // Stream streams binlog events.
 func (vs *vstreamer) replicate(ctx context.Context) error {
+	fmt.Println("[chris.lim log] vstreamer replicate")
 	// Ensure se is Open. If vttablet came up in a non_serving role,
 	// the schema engine may not have been initialized.
 	if err := vs.se.Open(); err != nil {
@@ -687,6 +688,7 @@ func (vs *vstreamer) parseEvent(ev mysql.BinlogEvent) ([]*binlogdatapb.VEvent, e
 }
 
 func (vs *vstreamer) buildSidecarTablePlan(id uint64, tm *mysql.TableMap) ([]*binlogdatapb.VEvent, error) {
+	fmt.Println("[chris.lim log] buildSidecarTablePlan", id, tm.Name)
 	tableName := tm.Name
 	switch tableName {
 	case "resharding_journal":

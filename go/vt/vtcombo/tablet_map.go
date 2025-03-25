@@ -87,6 +87,7 @@ func CreateTablet(
 	dbcfgs *dbconfigs.DBConfigs,
 	srvTopoCounts *stats.CountersWithSingleLabel,
 ) error {
+	fmt.Println("[chris.lim log] TabletMap CreateTablet")
 	alias := &topodatapb.TabletAlias{
 		Cell: cell,
 		Uid:  uid,
@@ -122,6 +123,7 @@ func CreateTablet(
 		Type:           initTabletType,
 		DbNameOverride: dbname,
 	}
+	fmt.Println("[chris.lim log] TabletMap CreateTablet Start")
 	if err := tm.Start(tablet, nil); err != nil {
 		return err
 	}

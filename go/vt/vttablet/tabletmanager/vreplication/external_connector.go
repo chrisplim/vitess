@@ -18,6 +18,7 @@ package vreplication
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"vitess.io/vitess/go/sqltypes"
@@ -83,6 +84,7 @@ func (ec *externalConnector) Close() {
 }
 
 func (ec *externalConnector) Get(name string) (*mysqlConnector, error) {
+	fmt.Println("[chris.lim log] externalConnector Get", name)
 	ec.mu.Lock()
 	defer ec.mu.Unlock()
 	if c, ok := ec.connectors[name]; ok {

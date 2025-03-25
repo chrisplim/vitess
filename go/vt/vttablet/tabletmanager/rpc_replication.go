@@ -502,6 +502,7 @@ func (tm *TabletManager) InitReplica(ctx context.Context, parent *topodatapb.Tab
 //
 // If a step fails in the middle, it will try to undo any changes it made.
 func (tm *TabletManager) DemotePrimary(ctx context.Context) (*replicationdatapb.PrimaryStatus, error) {
+	fmt.Println("[chris.lim log] DemotePrimary called")
 	log.Infof("DemotePrimary")
 	if err := tm.waitForGrantsToHaveApplied(ctx); err != nil {
 		return nil, err

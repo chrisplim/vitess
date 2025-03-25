@@ -298,6 +298,7 @@ func (throttler *Throttler) initThrottleTabletTypes() {
 
 // InitDBConfig initializes keyspace and shard
 func (throttler *Throttler) InitDBConfig(keyspace, shard string) {
+	fmt.Println("[chris.lim log] throttler InitDBConfig", keyspace, shard)
 	throttler.keyspace = keyspace
 	throttler.shard = shard
 }

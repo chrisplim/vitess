@@ -136,10 +136,15 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	// config and mycnf initializations are intertwined.
+	fmt.Println("[chris.lim log] about to initConfig")
 	config, mycnf, err := initConfig(tabletAlias, env.CollationEnv())
+	fmt.Println("[chris.lim log] created initConfig")
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("[chris.lim log] vttablet cli createTabletServer")
+	fmt.Println("[chris.lim log] skipSchemaEngineMetaCheck", config.SkipSchemaEngineMetaCheck)
 
 	qsc, err := createTabletServer(ctx, env, config, ts, tabletAlias, srvTopoCounts)
 	if err != nil {
@@ -170,6 +175,7 @@ func run(cmd *cobra.Command, args []string) error {
 		VREngine:            vreplication.NewEngine(env, config, ts, tabletAlias.Cell, mysqld, qsc.LagThrottler()),
 		VDiffEngine:         vdiff.NewEngine(ts, tablet, env.CollationEnv(), env.Parser()),
 	}
+	fmt.Println("[chris.lim log] vttablet cli tablet manager start")
 	if err := tm.Start(tablet, config); err != nil {
 		return fmt.Errorf("failed to parse --tablet-path or initialize DB credentials: %w", err)
 	}
@@ -202,6 +208,7 @@ func initConfig(tabletAlias *topodatapb.TabletAlias, collationEnv *collations.En
 		}
 	}
 	gotBytes, _ := yaml2.Marshal(config)
+	fmt.Println("[chris.lim log] loaded config file successfully")
 	log.Infof("Loaded config file %s successfully:\n%s", tabletConfig, gotBytes)
 
 	var (
