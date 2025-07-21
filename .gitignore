@@ -93,3 +93,5 @@ report
 # mise files
 .mise.toml
 /errors/
+
+valon_output_dir
