@@ -1,9 +1,7 @@
 package trace
 
 import (
-	"fmt"
 	"io"
-	"net"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/spf13/pflag"
@@ -50,13 +48,7 @@ func init() {
 }
 
 func newDatadogTracer(serviceName string) (tracingService, io.Closer, error) {
-	host, port := dataDogHost.Get(), dataDogPort.Get()
-	if host == "" || port == "" {
-		return nil, nil, fmt.Errorf("need host and port to datadog agent to use datadog tracing")
-	}
-
 	opts := []ddtracer.StartOption{
-		ddtracer.WithAgentAddr(net.JoinHostPort(host, port)),
 		ddtracer.WithServiceName(serviceName),
 		ddtracer.WithDebugMode(dataDogTraceDebugMode.Get()),
 		ddtracer.WithSampler(ddtracer.NewRateSampler(samplingRate.Get())),
