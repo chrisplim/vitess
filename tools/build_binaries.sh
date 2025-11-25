@@ -5,6 +5,7 @@ bin_dir="$script_dir/../bin"
 root_dir="$script_dir/../"
 valon_output_dir="$script_dir/../valon_output"
 mkdir -p $valon_output_dir
+valon_output_abs=$(cd "$valon_output_dir" && pwd)
 
 # Store the current working directory in a temporary variable.
 CURR_PATH=$(pwd);
@@ -33,3 +34,5 @@ for release_branch in "${release_branches[@]}"; do
         done
     done
 done
+
+echo "Binaries output to directory: $valon_output_abs"
