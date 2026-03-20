@@ -18,7 +18,10 @@ package planbuilder
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
+	"vitess.io/vitess/go/sqltypes"
 	"vitess.io/vitess/go/vt/key"
 	querypb "vitess.io/vitess/go/vt/proto/query"
 	"vitess.io/vitess/go/vt/sqlparser"
@@ -53,6 +56,15 @@ func gen4SelectStmtPlanner(
 				used = keyspace.Name + ".dual"
 			}
 			return newPlanResult(p, used), nil
+		}
+
+		// handle SELECT ... FROM information_schema.SCHEMATA at vtgate
+		p, err = handleInformationSchemaSchemata(sel, vschema)
+		if err != nil {
+			return nil, err
+		}
+		if p != nil {
+			return newPlanResult(p, "information_schema.SCHEMATA"), nil
 		}
 
 		if sel.SQLCalcFoundRows && sel.Limit != nil {
@@ -343,6 +355,110 @@ func handleDualSelects(sel *sqlparser.Select, vschema plancontext.VSchema) (engi
 		Cols:  cols,
 		Input: &engine.SingleRow{},
 	}, nil
+}
+
+// handleInformationSchemaSchemata intercepts unfiltered SELECT queries against
+// information_schema.SCHEMATA and returns Vitess keyspaces plus system schemas,
+// matching the behavior of SHOW DATABASES. Filtered queries (with WHERE) are
+// left to the normal DBA routing path.
+func handleInformationSchemaSchemata(sel *sqlparser.Select, vschema plancontext.VSchema) (engine.Primitive, error) {
+	if sel.Where != nil || sel.GroupBy != nil || sel.Having != nil || sel.OrderBy != nil || sel.Limit != nil {
+		return nil, nil
+	}
+	if len(sel.From) != 1 {
+		return nil, nil
+	}
+	aliased, ok := sel.From[0].(*sqlparser.AliasedTableExpr)
+	if !ok {
+		return nil, nil
+	}
+	tableName, ok := aliased.Expr.(sqlparser.TableName)
+	if !ok {
+		return nil, nil
+	}
+	if !strings.EqualFold(tableName.Qualifier.String(), "information_schema") ||
+		!strings.EqualFold(tableName.Name.String(), "SCHEMATA") {
+		return nil, nil
+	}
+
+	ks, err := vschema.AllKeyspace()
+	if err != nil {
+		// If we can't get keyspaces, fall through to normal DBA routing
+		return nil, nil
+	}
+
+	// Collect schema names: keyspaces + system schemas (matching buildDBPlan)
+	schemaNames := make([]string, 0, len(ks)+4)
+	for _, k := range ks {
+		schemaNames = append(schemaNames, k.Name)
+	}
+	schemaNames = append(schemaNames, "information_schema", "mysql", "sys", "performance_schema")
+	sort.Strings(schemaNames)
+
+	// Determine which columns are requested
+	type colDef struct {
+		name string
+		val  func(schemaName string) sqltypes.Value
+	}
+
+	allColumns := []colDef{
+		{"CATALOG_NAME", func(string) sqltypes.Value { return sqltypes.NewVarChar("def") }},
+		{"SCHEMA_NAME", func(s string) sqltypes.Value { return sqltypes.NewVarChar(s) }},
+		{"DEFAULT_CHARACTER_SET_NAME", func(string) sqltypes.Value { return sqltypes.NewVarChar("utf8mb4") }},
+		{"DEFAULT_COLLATION_NAME", func(string) sqltypes.Value { return sqltypes.NewVarChar("utf8mb4_0900_ai_ci") }},
+		{"SQL_PATH", func(string) sqltypes.Value { return sqltypes.NULL }},
+		{"DEFAULT_ENCRYPTION", func(string) sqltypes.Value { return sqltypes.NewVarChar("NO") }},
+	}
+
+	// Build the column list based on the SELECT expressions
+	var selectedCols []colDef
+	var fieldNames []string
+
+	for _, expr := range sel.SelectExprs.Exprs {
+		switch e := expr.(type) {
+		case *sqlparser.StarExpr:
+			for _, c := range allColumns {
+				selectedCols = append(selectedCols, c)
+				fieldNames = append(fieldNames, c.name)
+			}
+		case *sqlparser.AliasedExpr:
+			colName, ok := e.Expr.(*sqlparser.ColName)
+			if !ok {
+				return nil, nil // expression we can't handle, fall through to normal planning
+			}
+			name := strings.ToUpper(colName.Name.String())
+			found := false
+			for _, c := range allColumns {
+				if c.name == name {
+					selectedCols = append(selectedCols, c)
+					alias := e.As.String()
+					if alias == "" {
+						alias = c.name
+					}
+					fieldNames = append(fieldNames, alias)
+					found = true
+					break
+				}
+			}
+			if !found {
+				return nil, nil // unknown column, fall through
+			}
+		default:
+			return nil, nil
+		}
+	}
+
+	fields := buildVarCharFields(fieldNames...)
+	var rows [][]sqltypes.Value
+	for _, s := range schemaNames {
+		row := make([]sqltypes.Value, len(selectedCols))
+		for i, c := range selectedCols {
+			row[i] = c.val(s)
+		}
+		rows = append(rows, row)
+	}
+
+	return engine.NewRowsPrimitive(rows, fields), nil
 }
 
 func buildLockingPrimitive(sel *sqlparser.Select, vschema plancontext.VSchema, lockFunctions []*engine.LockFunc) (engine.Primitive, error) {

@@ -922,5 +922,48 @@
         "Keyspace": "ks"
       }
     }
+  },
+  {
+    "comment": "information_schema.SCHEMATA - select schema_name returns keyspaces",
+    "query": "select SCHEMA_NAME from information_schema.SCHEMATA",
+    "plan": {
+      "Type": "Passthrough",
+      "QueryType": "SELECT",
+      "Original": "select SCHEMA_NAME from information_schema.SCHEMATA",
+      "Instructions": {
+        "OperatorType": "Rows",
+        "Fields": {
+          "SCHEMA_NAME": "VARCHAR"
+        },
+        "RowCount": 5
+      },
+      "TablesUsed": [
+        "information_schema.SCHEMATA"
+      ]
+    }
+  },
+  {
+    "comment": "information_schema.SCHEMATA - select star returns all columns",
+    "query": "select * from information_schema.SCHEMATA",
+    "plan": {
+      "Type": "Passthrough",
+      "QueryType": "SELECT",
+      "Original": "select * from information_schema.SCHEMATA",
+      "Instructions": {
+        "OperatorType": "Rows",
+        "Fields": {
+          "CATALOG_NAME": "VARCHAR",
+          "SCHEMA_NAME": "VARCHAR",
+          "DEFAULT_CHARACTER_SET_NAME": "VARCHAR",
+          "DEFAULT_COLLATION_NAME": "VARCHAR",
+          "SQL_PATH": "VARCHAR",
+          "DEFAULT_ENCRYPTION": "VARCHAR"
+        },
+        "RowCount": 5
+      },
+      "TablesUsed": [
+        "information_schema.SCHEMATA"
+      ]
+    }
   }
 ]

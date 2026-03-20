@@ -1,5 +1,26 @@
 [
   {
+    "comment": "information_schema.SCHEMATA with WHERE clause uses DBA routing",
+    "query": "select SCHEMA_NAME from information_schema.SCHEMATA where SCHEMA_NAME = 'main'",
+    "plan": {
+      "Type": "Passthrough",
+      "QueryType": "SELECT",
+      "Original": "select SCHEMA_NAME from information_schema.SCHEMATA where SCHEMA_NAME = 'main'",
+      "Instructions": {
+        "OperatorType": "Route",
+        "Variant": "DBA",
+        "Keyspace": {
+          "Name": "main",
+          "Sharded": false
+        },
+        "FieldQuery": "select `SCHEMA_NAME` from information_schema.SCHEMATA where 1 != 1",
+        "Query": "select `SCHEMA_NAME` from information_schema.SCHEMATA where `SCHEMA_NAME` = :__vtschemaname /* VARCHAR */",
+        "SysTableTableSchema": "['main']",
+        "Table": "information_schema.SCHEMATA"
+      }
+    }
+  },
+  {
     "comment": "Single information_schema query",
     "query": "select TABLE_NAME from information_schema.TABLES",
     "plan": {
